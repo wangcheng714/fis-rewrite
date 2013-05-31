@@ -43,6 +43,7 @@ class Rewrite{
                     'wav' => 'audio/wav',
                     'wma' => 'audio/x-ms-wma',
                     'wmv' => 'video/x-ms-wmv',
+                    'woff' => 'image/woff',
                     'xml' => 'text/xml',
                     'xls' => 'application/vnd.ms-excel',
                     'xq' => 'text/xml',
@@ -61,10 +62,11 @@ class Rewrite{
             $rules = preg_split('/\r?\n/', $configContent);
             foreach($rules as $rule){
                 $ruleTokens = preg_split('/\s+/', $rule);
-                if($ruleTokens[0] == 'RewriteRule'){
+                if($ruleTokens[0] == 'rewrite' || $ruleTokens[0] == 'redirect'){
                     self::$rewriteRules[] = array(
                         'rule' => $ruleTokens[1],
-                        'rewrite' => $ruleTokens[2]
+                        'rewrite' => $ruleTokens[2],
+                        'type' => $ruleTokens[0]
                     );
                 }
             }
@@ -106,33 +108,35 @@ class Rewrite{
                 $m = $matches;
                 unset($m[0]);
                 $rewrite = self::padString($rules['rewrite'], $m);
-                if(file_exists(self::$root . $rewrite)){
-                    $pos = strrpos($rewrite, '.');
-                    if(false !== $pos){
-                        $ext = substr($rewrite, $pos + 1);
-                        if(in_array($ext, $exts)){
-                            $statusCode = 304;
-                        }else if($ext == 'php'){
-                            $statusCode = 200;
-                            self::includePhp(self::$root . $rewrite, $matches);
-                        }else if(self::$MIME[$ext]){
-                            $content_type = 'Content-Type: ' . $MIME[$ext];
-                            header($content_type);
-                            $statusCode = 200;
-                            echo file_get_contents(self::$root . $rewrite);
-                        }else{
-                            $statusCode = 200;
-                            $content_type = 'Content-Type: application/x-' . $ext;
-                            header($content_type);
-                            echo file_get_contents($file);
+                if($rule['type'] == 'rewrite'){
+                    if(file_exists(self::$root . $rewrite)){
+                        $pos = strrpos($rewrite, '.');
+                        if(false !== $pos){
+                            $ext = substr($rewrite, $pos + 1);
+                            if(in_array($ext, $exts)){
+                                $statusCode = 304;
+                            }else if($ext == 'php'){
+                                $statusCode = 200;
+                                self::includePhp(self::$root . $rewrite, $matches);
+                            }else if(self::$MIME[$ext]){
+                                $content_type = 'Content-Type: ' . $MIME[$ext];
+                                header($content_type);
+                                $statusCode = 200;
+                                echo file_get_contents(self::$root . $rewrite);
+                            }else{
+                                $statusCode = 200;
+                                $content_type = 'Content-Type: application/x-' . $ext;
+                                header($content_type);
+                                echo file_get_contents($file);
+                            }
                         }
+                    } else {
+                        $statusCode = 404;
                     }
-                } else if (!preg_match('/\.[a-z]{2,6}$/', $url)) {
-                    $statusCode = 302;
-                    header('Location: ' . $rewrite);
-                    exit();
-                } else {
-                    $statusCode = 404;
+                }else if($rule['type'] == 'redirect'){
+                        $statusCode = 302;
+                        header('Location: ' . $rewrite);
+                        exit();
                 }
                 return $statusCode;
             }

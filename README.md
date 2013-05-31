@@ -10,9 +10,11 @@
 
 2. 默认读取根目录server.conf文件，书写方式是： 
 
-	以RewriteRule开头的会被翻译成一条转发规则，自上而下的匹配。所有非RewriteRule开头的会被当做注释处理。
+	rewrite和redirect开头的会被翻译成一条匹配规则，自上而下的匹配。所有非rewrite和redirect开头的会被当做注释处理。
 
+		rewrite ： 匹配规则后转发到一个文件
+		redirect ： 匹配规则后重定向到另一个url
 
-        RewriteRule ^\/news\?.*tn\=[a-zA-Z0-9]+.* app/data/news.php
-        RewriteRule ^\/index\?.* app/data/index.json
-        RewriteRule ^\/(.*)\?.*  app/data/$1.php
+        rewrite ^\/news\?.*tn\=[a-zA-Z0-9]+.* app/data/news.php
+        redirect ^\/index\?.* /photo/index/a
+        rewrite ^\/(.*)\?.*  app/data/$1.php
